@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerador da base de alunos</title>
+<style>
+  :root {
+    --vermelho: #E11B22;
+    --vermelho-escuro: #B3141A;
+    --borda: #d8d8dc;
+    --fundo: #f6f6f8;
+    --texto: #1c1c1e;
+    --suave: #6b6b70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--fundo);
+    color: var(--texto);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--suave); font-size: 13px; margin: 0 0 20px; }
+  .painel {
+    background: #fff;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+  .dica { color: var(--suave); font-size: 12px; font-weight: 400; }
+
+  .drop {
+    border: 2px dashed var(--borda);
+    border-radius: 8px;
+    padding: 28px 16px;
+    text-align: center;
+    transition: border-color .15s, background .15s;
+  }
+  .drop.sobre { border-color: var(--vermelho); background: #fff5f5; }
+  .drop p { margin: 0 0 12px; color: var(--suave); font-size: 13px; }
+  .drop .nome { margin: 12px 0 0; color: var(--texto); font-weight: 600; font-size: 13px; }
+
+  textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 10px;
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    font: 13px/1.5 "Cascadia Code", Consolas, monospace;
+    resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--vermelho); outline-offset: -1px; }
+  #saida { background: #fbfbfc; }
+  .barra { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  button {
+    background: var(--vermelho);
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: var(--vermelho-escuro); }
+  button:disabled { background: #c9c9ce; cursor: default; }
+  .status { font-size: 13px; color: var(--suave); }
+  .avisos { margin-top: 12px; font-size: 13px; }
+  .aviso {
+    background: #fff6e5;
+    border-left: 3px solid #e0a800;
+    padding: 8px 10px;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 6px;
+  }
+  .erro { background: #fdecec; border-left-color: var(--vermelho); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Gerador da base de alunos</h1>
+  <p class="sub">Escolhe o arquivo <code>.xls</code> que o sistema exporta e leva o resultado pro <code>Base.gs</code>. Sem copiar e colar planilha.</p>
+
+  <div class="painel">
+    <label>Arquivo da planilha</label>
+    <div class="drop" id="drop">
+      <p>Arraste o <code>.xls</code> exportado pelo sistema aqui, ou</p>
+      <button type="button" id="escolher">Escolher arquivo…</button>
+      <input type="file" id="arquivo" accept=".xls,.xlsx,.xlsm" hidden>
+      <p class="nome" id="nome"></p>
+    </div>
+    <div class="avisos" id="avisos"></div>
+  </div>
+
+  <div class="painel">
+    <label for="saida">Cole isto por cima do <code>const BASE_ALUNOS</code> no Base.gs</label>
+    <textarea id="saida" readonly spellcheck="false"></textarea>
+    <div class="barra">
+      <button id="copiar" disabled>Copiar</button>
+      <span class="status" id="status">Aguardando o arquivo.</span>
+    </div>
+  </div>
+
+</div>
+
+<script src="vendor/xlsx.full.min.js"></script>
+<script>
+const arquivo  = document.getElementById('arquivo');
+const escolher = document.getElementById('escolher');
+const drop     = document.getElementById('drop');
+const nome     = document.getElementById('nome');
+const saida    = document.getElementById('saida');
+const status   = document.getElementById('status');
+const avisos   = document.getElementById('avisos');
+const copiar   = document.getElementById('copiar');
+
+// Colunas onde cada campo cai na planilha que o sistema exporta (contando a
+// partir de A = 0):
+//   C = Matrícula   E = Nome completo do aluno   I = Turma
+const COL_MATRICULA = 2;
+const COL_NOME = 4;
+const COL_TURMA = 8;
+
+function limpar(celula) {
+  return String(celula == null ? '' : celula).trim().replace(/^'/, '').replace(/\s+/g, ' ');
+}
+
+// Devolve a turma do bloco (linha que começa com "Curso:"), ou null.
+function turmaDoBloco(campos) {
+  if (!/^curso:?$/i.test(campos[0] || '')) return null;
+  const i = campos.findIndex(c => /^turma:?$/i.test(c));
+  return limpar(i >= 0 ? campos[i + 1] : campos[6]);
+}
+
+// Linha de cabeçalho da tabela.
+function ehCabecalho(campos) {
+  if (/^n[ºo°.]?$/i.test(campos[0] || '')) return true;
+  return campos.slice(0, 6).some(c => /^(matr[ií]cula|alunonome)$/i.test(c));
+}
+
+function mostrarProblema(p) {
+  const div = document.createElement('div');
+  div.className = 'aviso' + (p.tipo === 'erro' ? ' erro' : '');
+  div.textContent = p.texto;
+  avisos.appendChild(div);
+}
+
+// ---- Leitura do arquivo ------------------------------------------------
+
+escolher.addEventListener('click', () => arquivo.click());
+arquivo.addEventListener('change', () => {
+  if (arquivo.files[0]) lerArquivo(arquivo.files[0]);
+});
+
+['dragenter', 'dragover'].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('sobre'); })
+);
+['dragleave', 'drop'].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('sobre'); })
+);
+drop.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) {
+    arquivo.value = '';   // solta o arquivo anterior pra um 'change' futuro sempre disparar
+    lerArquivo(f);
+  }
+});
+
+function lerArquivo(file) {
+  nome.textContent = file.name;
+  avisos.innerHTML = '';
+  saida.value = '';
+  copiar.disabled = true;
+
+  if (typeof XLSX === 'undefined') {
+    status.textContent = 'A biblioteca de leitura não carregou.';
+    mostrarProblema({
+      tipo: 'erro',
+      texto: 'Não achei o vendor/xlsx.full.min.js. Confirme que a pasta "vendor" veio junto com este arquivo.'
+    });
+    return;
+  }
+
+  status.textContent = 'Lendo ' + file.name + '…';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    let linhas;
+    try {
+      // cellDates/raw:false pra datas e números virem como texto já formatado;
+      // o sistema antigo joga tudo na primeira aba, então é ela que a gente lê.
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      linhas = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+    } catch (err) {
+      status.textContent = 'Não consegui ler o arquivo.';
+      mostrarProblema({
+        tipo: 'erro',
+        texto: 'Erro ao abrir a planilha (' + err.message + '). Precisa ser o .xls (ou .xlsx) do jeito que o sistema exporta.'
+      });
+      return;
+    }
+    processarLinhas(linhas);
+  };
+  reader.onerror = () => {
+    status.textContent = 'Não consegui ler o arquivo.';
+    mostrarProblema({ tipo: 'erro', texto: 'O navegador não conseguiu abrir o arquivo.' });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ---- Extração dos alunos ---------------------------------------------
+
+function processarLinhas(linhas) {
+  avisos.innerHTML = '';
+
+  const problemas = [];
+  const alunos = [];
+  const vistas = new Map();
+
+  let turmaAtual = '';
+  let achouCabecalho = false;
+
+  linhas.forEach((linha, i) => {
+    const campos = (linha || []).map(limpar);
+    const numeroLinha = i + 1;
+
+    if (campos.every(c => c === '')) return;
+
+    const turma = turmaDoBloco(campos);
+    if (turma !== null) {
+      turmaAtual = turma;
+      return;
+    }
+
+    if (ehCabecalho(campos)) {
+      achouCabecalho = true;
+      return;
+    }
+
+    const matricula  = campos[COL_MATRICULA] || '';
+    const nomeAluno  = campos[COL_NOME] || '';
+    const turmaLinha = campos[COL_TURMA] || turmaAtual;
+
+    // Sem matrícula e sem nome é rodapé, linha em branco ou sobra do bloco.
+    // O Nº não importa, então isso passa sem reclamação.
+    if (matricula === '' && nomeAluno === '') return;
+
+    if (matricula === '' || nomeAluno === '') {
+      problemas.push({
+        tipo: 'erro',
+        texto: 'Linha ' + numeroLinha + ' ignorada: falta ' +
+               (matricula === '' ? 'matrícula' : 'nome') + '.'
+      });
+      return;
+    }
+
+    if (turmaLinha === '') {
+      problemas.push({
+        tipo: 'aviso',
+        texto: 'Linha ' + numeroLinha + ' (' + nomeAluno + ') ficou sem turma — ' +
+               'nenhum bloco "Curso: … Turma:" veio antes dela.'
+      });
+    }
+
+    if (vistas.has(matricula)) {
+      problemas.push({
+        tipo: 'erro',
+        texto: 'Matrícula ' + matricula + ' repetida nas linhas ' +
+               vistas.get(matricula) + ' e ' + numeroLinha +
+               ' — a busca vai achar sempre a primeira.'
+      });
+    } else {
+      vistas.set(matricula, numeroLinha);
+    }
+
+    alunos.push([
+      // Vira número quando puder; com zero à esquerda continua texto.
+      /^\d+$/.test(matricula) && !/^0\d/.test(matricula) ? Number(matricula) : matricula,
+      nomeAluno,
+      turmaLinha
+    ]);
+  });
+
+  if (!achouCabecalho) {
+    problemas.unshift({
+      tipo: 'erro',
+      texto: 'Não achei o cabeçalho "Nº | Matricula | AlunoNome | Turma". ' +
+             'Esse arquivo não parece a planilha .xls que o sistema exporta.'
+    });
+  }
+
+  problemas.forEach(mostrarProblema);
+
+  if (alunos.length === 0) {
+    saida.value = '';
+    status.textContent = 'Nenhum aluno encontrado no arquivo.';
+    copiar.disabled = true;
+    return;
+  }
+
+  const data = new Date().toLocaleDateString('pt-BR');
+  const corpo = alunos
+    .map(a => '  [' + a.map(v => JSON.stringify(v)).join(', ') + '],')
+    .join('\n');
+
+  saida.value = '// Gerado em ' + data + ' — ' + alunos.length + ' alunos.\n'
+              + 'const BASE_ALUNOS = [\n' + corpo + '\n];';
+
+  status.textContent = alunos.length + ' alunos prontos.';
+  copiar.disabled = false;
+}
+
+copiar.addEventListener('click', () => {
+  saida.select();
+  navigator.clipboard.writeText(saida.value).then(() => {
+    copiar.textContent = 'Copiado';
+    setTimeout(() => copiar.textContent = 'Copiar', 1500);
+  });
+});
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"666747ebf591406e9705e8327329621f","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
