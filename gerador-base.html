@@ -264,7 +264,7 @@ function processarLinhas(linhas) {
     if (turmaLinha === '') {
       problemas.push({
         tipo: 'aviso',
-        texto: 'Linha ' + numeroLinha + ' (' + nomeAluno + ') ficou sem turma — ' +
+        texto: 'Linha ' + numeroLinha + ' (' + nomeAluno + ') ficou sem turma: ' +
                'nenhum bloco "Curso: … Turma:" veio antes dela.'
       });
     }
@@ -274,7 +274,7 @@ function processarLinhas(linhas) {
         tipo: 'erro',
         texto: 'Matrícula ' + matricula + ' repetida nas linhas ' +
                vistas.get(matricula) + ' e ' + numeroLinha +
-               ' — a busca vai achar sempre a primeira.'
+               '. A busca vai achar sempre a primeira.'
       });
     } else {
       vistas.set(matricula, numeroLinha);
@@ -310,7 +310,7 @@ function processarLinhas(linhas) {
     .map(a => '  [' + a.map(v => JSON.stringify(v)).join(', ') + '],')
     .join('\n');
 
-  saida.value = '// Gerado em ' + data + ' — ' + alunos.length + ' alunos.\n'
+  saida.value = '// Gerado em ' + data + ' com ' + alunos.length + ' alunos.\n'
               + 'const BASE_ALUNOS = [\n' + corpo + '\n];';
 
   status.textContent = alunos.length + ' alunos prontos.';

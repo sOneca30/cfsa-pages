@@ -131,7 +131,7 @@
   </div>
 
   <div class="painel">
-    <label for="saida">Cole isto no terminal do MikroTik <span class="dica">— ou baixe o .rsc e use <code>/import</code></span></label>
+    <label for="saida">Cole isto no terminal do MikroTik <span class="dica">(ou baixe o .rsc e use <code>/import</code>)</span></label>
     <textarea id="saida" readonly spellcheck="false"></textarea>
     <div class="barra">
       <button id="copiar" disabled>Copiar</button>
@@ -340,7 +340,7 @@ function processarLinhas(linhas, nomeArquivo) {
         tipo: 'erro',
         texto: 'Matrícula ' + matricula + ' repetida nas linhas ' +
                vistas.get(matricula) + ' e ' + numeroLinha +
-               ' — só a primeira entrou no script (o segundo add falharia no roteador).'
+               '. Só a primeira entrou no script (o segundo add falharia no roteador).'
       });
       return;
     }

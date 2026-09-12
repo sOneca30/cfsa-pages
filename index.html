@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ferramentas CFSA</title>
+<style>
+  :root {
+    --vermelho: #E11B22;
+    --vermelho-escuro: #B3141A;
+    --borda: #d8d8dc;
+    --fundo: #f6f6f8;
+    --texto: #1c1c1e;
+    --suave: #6b6b70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--fundo);
+    color: var(--texto);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--suave); font-size: 13px; margin: 0 0 20px; }
+
+  .lista { display: grid; gap: 12px; }
+  .item {
+    display: block;
+    background: #fff;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 16px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .item:hover {
+    border-color: var(--vermelho);
+    box-shadow: 0 2px 8px rgba(225, 27, 34, .12);
+    transform: translateY(-1px);
+  }
+  .item:focus-visible { outline: 2px solid var(--vermelho); outline-offset: 2px; }
+  .item h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  .item h2 .seta { color: var(--vermelho); font-weight: 700; margin-left: 4px; }
+  .item p { margin: 0; color: var(--suave); font-size: 13px; }
+
+  .rodape { margin-top: 24px; color: var(--suave); font-size: 12px; }
+  code { font-family: "Cascadia Code", Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ferramentas CFSA</h1>
+  <p class="sub">Tudo roda aqui no navegador. Nenhum arquivo é enviado pra servidor nenhum.</p>
+
+  <div class="lista">
+
+    <a class="item" href="gerador-base.html">
+      <h2>Gerador da base de alunos <span class="seta">&rarr;</span></h2>
+      <p>Lê o <code>.xls</code> que o sistema exporta e devolve o <code>const BASE_ALUNOS</code> pronto pra colar no <code>Base.gs</code>.</p>
+    </a>
+
+    <a class="item" href="gerador-mikrotik.html">
+      <h2>Gerador de usuários do hotspot <span class="seta">&rarr;</span></h2>
+      <p>Lê o mesmo <code>.xls</code> e monta o script do MikroTik: cada aluno vira um usuário com a matrícula como login e senha.</p>
+    </a>
+
+    <a class="item" href="limpa-url.html">
+      <h2>Limpa Link <span class="seta">&rarr;</span></h2>
+      <p>Tira os parâmetros de rastreamento de um link de qualquer loja ou site e devolve o endereço curto.</p>
+    </a>
+
+  </div>
+
+  <p class="rodape">Os dois geradores precisam do arquivo <code>.xls</code> exportado pelo sistema, do jeito que ele sai.</p>
+
+</div>
+</body>
+</html>

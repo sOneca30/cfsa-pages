@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limpa Link</title>
+<style>
+  :root{
+    --destaque:#7BE3C0;
+    --destaque-forte:#5CCFA9;
+    --ink:#12130F;
+    --paper:#FFFDF5;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --serif: 'Georgia', 'Times New Roman', serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 16px;
+    background-image:
+      linear-gradient(var(--ink) 1px, transparent 1px);
+    background-size: 100% 42px;
+    background-position: 0 100px;
+    background-attachment: local;
+  }
+  .card{
+    width:100%;
+    max-width:640px;
+    background:var(--paper);
+    border:3px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--ink);
+    position:relative;
+  }
+  .tag-hole{
+    position:absolute;
+    top:-3px; left:28px;
+    width:20px; height:20px;
+    background:var(--paper);
+    border:3px solid var(--ink);
+    border-radius:50%;
+    transform: translateY(-50%);
+  }
+  header{
+    background:var(--destaque);
+    border-bottom:3px solid var(--ink);
+    padding:22px 28px 18px 60px;
+    position:relative;
+    overflow:hidden;
+  }
+  /* Marca d'água: vira o domínio do link assim que um é colado. */
+  header::after{
+    content: attr(data-marca);
+    position:absolute;
+    right:-10px; top:-18px;
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:110px;
+    color:rgba(18,19,15,0.08);
+    letter-spacing:-4px;
+    pointer-events:none;
+    white-space:nowrap;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    opacity:0.75;
+    margin:0 0 4px 0;
+  }
+  h1{
+    margin:0;
+    font-family:var(--serif);
+    font-size:30px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    margin:8px 0 0 0;
+    font-size:14px;
+    max-width:40ch;
+    line-height:1.4;
+    opacity:0.85;
+    position:relative;
+  }
+  main{ padding:26px 28px 28px; }
+  label{
+    display:block;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+    opacity:0.7;
+  }
+  textarea{
+    width:100%;
+    min-height:110px;
+    resize:vertical;
+    padding:14px;
+    border:2px solid var(--ink);
+    font-family:var(--mono);
+    font-size:13px;
+    line-height:1.5;
+    background:#fff;
+    color:var(--ink);
+    outline:none;
+  }
+  textarea:focus{
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .btn{
+    margin-top:14px;
+    width:100%;
+    padding:14px;
+    background:var(--ink);
+    color:var(--destaque);
+    border:2px solid var(--ink);
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+    transition: transform 0.08s ease;
+  }
+  .btn:hover{ background:#2b2c26; }
+  .btn:active{ transform: translateY(2px); }
+
+  .opcao{
+    display:flex;
+    align-items:flex-start;
+    gap:9px;
+    margin-top:14px;
+    font-size:12.5px;
+    line-height:1.4;
+    cursor:pointer;
+  }
+  .opcao input{
+    width:17px; height:17px;
+    margin:1px 0 0;
+    accent-color:var(--ink);
+    flex:0 0 auto;
+    cursor:pointer;
+  }
+  .opcao span{ opacity:0.8; }
+  .opcao code{ font-family:var(--mono); font-size:12px; }
+
+  .result{
+    margin-top:22px;
+    display:none;
+  }
+  .result.show{ display:block; }
+  .result-box{
+    border:2px solid var(--ink);
+    background:#fff;
+    padding:14px;
+    position:relative;
+  }
+  .result-box::before{
+    content:"LINK LIMPO";
+    position:absolute;
+    top:-11px; left:12px;
+    background:var(--paper);
+    padding:0 8px;
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.16em;
+    color:var(--ink);
+  }
+  .clean-url{
+    font-family:var(--mono);
+    font-size:13px;
+    word-break:break-all;
+    line-height:1.5;
+  }
+  .row{
+    display:flex;
+    gap:10px;
+    margin-top:12px;
+  }
+  .copy-btn, .visit-btn{
+    flex:1;
+    padding:10px;
+    border:2px solid var(--ink);
+    background:var(--destaque);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    font-weight:700;
+    text-align:center;
+    text-decoration:none;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .copy-btn:hover, .visit-btn:hover{ background:var(--destaque-forte); }
+  .stat{
+    margin-top:12px;
+    font-family:var(--mono);
+    font-size:11px;
+    line-height:1.6;
+    opacity:0.65;
+  }
+  .stat b{ font-weight:700; opacity:0.85; }
+  .stat .lista{ word-break:break-all; }
+  .error{
+    margin-top:18px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:#8a1f0f;
+    display:none;
+  }
+  .error.show{ display:block; }
+  footer{
+    padding:14px 28px 20px;
+    border-top:2px dashed var(--ink);
+    font-family:var(--mono);
+    font-size:10.5px;
+    opacity:0.55;
+    letter-spacing:0.04em;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="tag-hole"></div>
+  <header id="cabecalho" data-marca="URL">
+    <p class="eyebrow">Utilitário · sem rastreamento</p>
+    <h1>Limpa Link</h1>
+    <p class="sub">Cola o link gigante de qualquer loja ou site e recebe de volta só o essencial, sem parâmetros de anúncio, clique ou afiliado.</p>
+  </header>
+
+  <main>
+    <label for="input-url">Cola o link aqui</label>
+    <textarea id="input-url" placeholder="https://www.loja.com.br/produto/...?utm_source=...&gclid=..."></textarea>
+    <button class="btn" onclick="limpar()">Limpar link</button>
+
+    <label class="opcao" for="agressivo">
+      <input type="checkbox" id="agressivo">
+      <span>Modo agressivo: joga fora <b>tudo</b> depois do <code>?</code>. Limpa mais, mas pode quebrar link de busca ou de variação (cor, tamanho).</span>
+    </label>
+
+    <p class="error" id="error-msg"></p>
+
+    <div class="result" id="resultado">
+      <div class="result-box">
+        <div class="clean-url" id="clean-url-text"></div>
+      </div>
+      <div class="row">
+        <button class="copy-btn" id="copy-btn" onclick="copiar()">Copiar</button>
+        <a class="visit-btn" id="visit-link" href="#" target="_blank" rel="noopener">Abrir link</a>
+      </div>
+      <p class="stat" id="stat-text"></p>
+    </div>
+  </main>
+
+  <footer>
+    Funciona em qualquer site: o que é rastreamento conhecido sai sempre, e as lojas grandes ainda ganham a URL curta e canônica.<br>
+    Tudo acontece no seu navegador. Nenhum link é enviado pra lugar nenhum. Link encurtado (<code>amzn.to</code>, <code>bit.ly</code>) precisa ser aberto antes, pra virar o link de verdade.
+  </footer>
+</div>
+
+<script>
+// ---- O que é rastreamento ---------------------------------------------
+
+// Parâmetros de rastreamento por nome exato. Valem em qualquer site.
+const PARAMS_RASTREIO = new Set([
+  // Google / Ads
+  'gclid','gclsrc','gbraid','wbraid','dclid','gad','gad_source','gad_campaignid','srsltid',
+  'gs_lcrp','gs_lp','sourceid','ved','usg','sca_esv','_ga','_gl','_gac',
+  // Meta / redes
+  'fbclid','fb_action_ids','fb_action_types','fb_source','fb_ref','igshid','igsh',
+  'twclid','ttclid','tt_medium','tt_content','li_fat_id','epik','yclid','ysclid','wickedid',
+  // E-mail / automação de marketing
+  'mc_cid','mc_eid','mkt_tok','_hsenc','_hsmi','hsctatracking','vero_id','vero_conv',
+  'oly_anon_id','oly_enc_id','ml_subscriber','ml_subscriber_hash','sc_campaign','sc_channel',
+  // Microsoft / outros
+  'msclkid','s_kwcid','cmpid','campaign_id','adset_id','ad_id','creative_id',
+  'irclickid','irgwc','clickid','click_id','affiliate_id','aff_id','aff_trace_key',
+  // Genéricos que viraram padrão de campanha
+  'source','medium','campaign','ref_src','ref_url','referrer','trk','trkcampaign',
+  // Mercado Livre
+  'tracking_id','wid','sid','search_layout','position','type','c_id','c_uid','c_campaign',
+  'pdp_filters','searchvariation','is_advertising','ad_domain','ad_position','ad_click_id',
+  'deal_print_id','da_id','id_origin','forceinapp','polycard_client','backend_model',
+  // Amazon
+  'ref','ref_','th','psc','qid','sr','sprefix','crid','dib','dib_tag','content-id',
+  'linkcode','linkid','ascsubtag','creativeasin','camp','creative','_encoding',
+  // Shopee / AliExpress / asiáticas
+  'sp_atk','xptdk','is_from_login','gatewayadapt','curpageloguid','srcsns','businesstype',
+  'spreadtype','bizscene','tracelog','scenario','pvid','ws_ab_test','btsid','aem_p4p_detail',
+  // Marketplaces BR
+  'partner_id','opn','loja','idsku','seller_id','utmi_cp','utmi_pc','condition_id'
+]);
+
+// Famílias de parâmetro que são rastreamento inteiro. Qualquer nome que
+// comece com um destes prefixos cai fora.
+const PREFIXOS_RASTREIO = [
+  'utm_','utm-','matt_','pk_','piwik_','matomo_','mtm_','hsa_','_bta_','vmcid',
+  'pd_rd_','pf_rd_','reco_','algo_','spm','scm','aem_','mkwid','pcrid','ef_id','epid_'
+];
+
+// Sites onde a gente sabe qual é a URL canônica. Dá pra cortar bem mais
+// que a lista de parâmetros sozinha conseguiria.
+const REGRAS_SITE = [
+  {
+    nome: 'Mercado Livre',
+    host: /(^|\.)mercado(livre|libre)\.com(\.[a-z]{2})?$/i,
+    // .../slug/p/MLB123456 é a página do produto; o resto do caminho é enfeite.
+    corte: /^(.*\/p\/[A-Z]{3}\d+)/
+  },
+  {
+    nome: 'Amazon',
+    host: /(^|\.)amazon\.[a-z.]+$/i,
+    // Todo produto da Amazon é o ASIN: /dp/XXXXXXXXXX resolve sozinho.
+    redesenha: u => {
+      const m = u.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d|product)\/([A-Z0-9]{10})/i);
+      return m ? u.origin + '/dp/' + m[1].toUpperCase() : null;
+    }
+  },
+  {
+    nome: 'Shopee',
+    host: /(^|\.)shopee\.[a-z.]+$/i,
+    corte: /^(.*i\.\d+\.\d+)/
+  },
+  {
+    nome: 'AliExpress',
+    host: /(^|\.)aliexpress\.[a-z.]+$/i,
+    corte: /^(\/item\/\d+\.html)/
+  },
+  {
+    nome: 'eBay',
+    host: /(^|\.)ebay\.[a-z.]+$/i,
+    corte: /^(\/itm\/\d+)/
+  },
+  {
+    nome: 'Magazine Luiza',
+    host: /(^|\.)magazine(luiza|voce)\.com\.br$/i,
+    corte: /^(.*\/p\/[^/]+)/
+  },
+  {
+    nome: 'Americanas / Submarino / Shoptime',
+    host: /(^|\.)(americanas|submarino|shoptime)\.com\.br$/i,
+    corte: /^(\/produto\/\d+)/
+  },
+  {
+    nome: 'Casas Bahia / Ponto',
+    host: /(^|\.)(casasbahia|pontofrio|extra)\.com\.br$/i,
+    corte: /^(\/[^/]*\/p\/\d+)/
+  },
+  { nome: 'KaBuM!',   host: /(^|\.)kabum\.com\.br$/i,    corte: /^(\/produto\/\d+)/ },
+  { nome: 'YouTube',  host: /(^|\.)youtube\.com$/i,      mantem: ['v','t','list'] },
+  { nome: 'YouTube',  host: /(^|\.)youtu\.be$/i,         mantem: ['t'] }
+];
+
+// Encurtadores de rede social que carregam o link real dentro de um parâmetro.
+const REDIRECIONADORES = [
+  { host: /(^|\.)(facebook|instagram|messenger)\.com$/i, campo: 'u' },
+  { host: /(^|\.)google\.[a-z.]+$/i, campo: 'q', caminho: /^\/url$/ },
+  { host: /(^|\.)google\.[a-z.]+$/i, campo: 'url', caminho: /^\/url$/ },
+  { host: /(^|\.)reddit\.com$/i, campo: 'url' },
+  { host: /(^|\.)vk\.com$/i, campo: 'to' }
+];
+
+// ---- Limpeza ----------------------------------------------------------
+
+function ehRastreio(nome) {
+  const n = nome.toLowerCase();
+  if (PARAMS_RASTREIO.has(n)) return true;
+  return PREFIXOS_RASTREIO.some(p => n.startsWith(p));
+}
+
+// Pega só o link de dentro de um texto colado ("olha isso: https://… via app")
+// e aceita link sem o https:// na frente.
+function extrairUrl(texto) {
+  const t = texto.trim();
+  if (!t) return '';
+  const achado = t.match(/https?:\/\/\S+/i);
+  if (achado) return achado[0].replace(/[)\].,;"']+$/, '');
+  if (/^[\w.-]+\.[a-z]{2,}([/?#]|$)/i.test(t)) return 'https://' + t.split(/\s+/)[0];
+  return t;
+}
+
+// Desembrulha l.facebook.com/l.php?u=…, google.com/url?q=… e afins.
+function desembrulhar(url, voltas = 0) {
+  if (voltas >= 3) return url;
+  for (const r of REDIRECIONADORES) {
+    if (!r.host.test(url.hostname)) continue;
+    if (r.caminho && !r.caminho.test(url.pathname)) continue;
+    const interno = url.searchParams.get(r.campo);
+    if (interno && /^https?:\/\//i.test(interno)) {
+      try { return desembrulhar(new URL(interno), voltas + 1); } catch (e) { /* segue com o de fora */ }
+    }
+  }
+  return url;
+}
+
+// Âncora de verdade (#especificacoes) fica; hash com cara de querystring
+// (#polycard_client=...&type=...) é rastreamento e sai.
+function hashLimpo(hash) {
+  if (!hash || hash === '#') return '';
+  const corpo = hash.slice(1);
+  if (/[=&]/.test(corpo)) return '';
+  return '#' + corpo;
+}
+
+function limpar() {
+  const entrada   = document.getElementById('input-url').value;
+  const agressivo = document.getElementById('agressivo').checked;
+  const errorEl   = document.getElementById('error-msg');
+  const resultEl  = document.getElementById('resultado');
+  errorEl.classList.remove('show');
+  resultEl.classList.remove('show');
+
+  if (!entrada.trim()) {
+    errorEl.textContent = 'Cola um link antes de limpar.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  let url;
+  try {
+    url = new URL(extrairUrl(entrada));
+  } catch (e) {
+    errorEl.textContent = 'Isso não parece um link válido. Confere e tenta de novo.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  if (!/^https?:$/.test(url.protocol)) {
+    errorEl.textContent = 'Só dá pra limpar link http ou https.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  url = desembrulhar(url);
+
+  const regra = REGRAS_SITE.find(r => r.host.test(url.hostname));
+  let caminho = url.pathname;
+
+  if (regra && regra.redesenha) {
+    const redesenhado = regra.redesenha(url);
+    if (redesenhado) {
+      mostrar(redesenhado, url, [], regra.nome + ': reduzido ao endereço canônico');
+      return;
+    }
+  }
+  if (regra && regra.corte) {
+    const m = caminho.match(regra.corte);
+    if (m) caminho = m[1];
+  }
+
+  // Decide parâmetro por parâmetro o que fica. Trabalha em cima do texto cru
+  // de cada par pra devolver o que sobrou exatamente como veio (um "+" no meio
+  // da busca continua "+", e não %20).
+  const removidos = [];
+  const mantidos  = [];
+  for (const par of url.search.slice(1).split('&')) {
+    if (!par) continue;
+    const nome = decodeURIComponent(par.split('=')[0].replace(/\+/g, ' '));
+    const some = agressivo
+      || ehRastreio(nome)
+      || (regra && regra.mantem && !regra.mantem.includes(nome.toLowerCase()))
+      || (regra && (regra.corte || regra.redesenha));   // em loja conhecida o caminho já basta
+    if (some) removidos.push(nome);
+    else mantidos.push([nome, par]);
+  }
+
+  let limpo = url.origin + caminho.replace(/\/+$/, '');
+  if (mantidos.length) {
+    limpo += '?' + mantidos.map(([, par]) => par).join('&');
+  }
+  if (!agressivo) limpo += hashLimpo(url.hash);
+
+  const nota = regra ? 'regra do ' + regra.nome + ' aplicada'
+             : agressivo ? 'modo agressivo' : 'limpeza genérica';
+  mostrar(limpo, url, removidos, nota, mantidos);
+}
+
+function mostrar(limpo, original, removidos, nota, mantidos = []) {
+  document.getElementById('clean-url-text').textContent = limpo;
+  document.getElementById('visit-link').href = limpo;
+  document.getElementById('cabecalho').dataset.marca =
+    original.hostname.replace(/^www\./, '').split('.')[0].slice(0, 9).toUpperCase();
+
+  const encolheu = original.href.length - limpo.length;
+  const linhas = [];
+  const quantos = removidos.length === 0 ? '<b>nenhum</b> parâmetro removido'
+                : removidos.length === 1 ? '<b>1</b> parâmetro removido'
+                : '<b>' + removidos.length + '</b> parâmetros removidos';
+  linhas.push(quantos +
+              (encolheu > 0 ? ' · ' + encolheu + ' caracteres a menos' : '') +
+              ' · ' + nota);
+  if (removidos.length) {
+    linhas.push('<span class="lista">saiu: ' + removidos.slice(0, 12).join(', ') +
+                (removidos.length > 12 ? ' e mais ' + (removidos.length - 12) : '') + '</span>');
+  }
+  if (mantidos.length) {
+    linhas.push('<span class="lista">ficou (o site precisa): ' +
+                mantidos.map(([n]) => n).join(', ') + '</span>');
+  }
+  document.getElementById('stat-text').innerHTML = linhas.join('<br>');
+  document.getElementById('resultado').classList.add('show');
+}
+
+function copiar() {
+  const texto = document.getElementById('clean-url-text').textContent;
+  const btn = document.getElementById('copy-btn');
+  navigator.clipboard.writeText(texto).then(() => {
+    btn.textContent = 'Copiado!';
+    setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+  }).catch(() => {
+    btn.textContent = 'Copie na mão';
+    setTimeout(() => { btn.textContent = 'Copiar'; }, 2000);
+  });
+}
+
+document.getElementById('input-url').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) limpar();
+});
+</script>
+
+</body>
+</html>
